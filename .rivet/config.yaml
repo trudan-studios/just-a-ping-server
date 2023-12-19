@@ -1,0 +1,6 @@
+cluster:
+  api_endpoint: null
+telemetry:
+  disabled: false
+tokens:
+  cloud: null
