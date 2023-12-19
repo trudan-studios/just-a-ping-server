@@ -26,6 +26,9 @@ const PING_SERVERS: PingServer[] = [
   },
 ];
 
+const average = (nums: number[]) =>
+  nums.reduce((a, b) => a + b, 0) / nums.length;
+
 const pingServer = async (
   server: PingServer,
   { times = 3, timeout = 1000 } = {}
@@ -43,6 +46,16 @@ const pingServer = async (
       pingCount++;
     }
 
+    setTimeout(() => {
+      if (pingCount < times) {
+        reject(new Error(`Ping timed out after ${timeout}ms`));
+      } else {
+        // Return avg latency
+        ws.close();
+        resolve(average(latencies));
+      }
+    }, timeout);
+
     ws.onopen = () => {
       console.log(`Connected to ${server.region} server`);
       sendPing();
@@ -56,24 +69,32 @@ const pingServer = async (
           sendPing();
         } else {
           // Return avg latency
-          const avgLatency =
-            latencies.reduce((a, b) => a + b, 0) / latencies.length;
           ws.close();
-          resolve(avgLatency);
+          resolve(average(latencies));
         }
       }
     };
   });
 };
 
+/**
+ * Pings all servers in parallel and returns the results.
+ *
+ * Note: doing this in parallel may affect results since the
+ * network requests may be competing for bandwidth.
+ */
 const pingAllServers = async () => {
   const results = await Promise.all(
-    PING_SERVERS.map((server) => ({
+    PING_SERVERS.map(async (server) => ({
       ...server,
-      // TODO: Need to handle ping timeout
-      latency: pingServer(server),
+      latency: await pingServer(server).catch((e) => {
+        console.error(e);
+        return null;
+      }),
     }))
   );
+
+  return results.filter((r) => r.latency !== null);
 };
 
 console.log(await pingAllServers());
