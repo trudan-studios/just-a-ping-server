@@ -3,18 +3,16 @@ Bun.serve({
     if (server.upgrade(req)) {
       return; // do not return a Response
     }
-    return new Response("Upgrade failed :(", { status: 500 });
-  }, // upgrade logic
+    return new Response("Only websocket upgrade requests are allowed", {
+      status: 400,
+    });
+  },
   websocket: {
     message(ws, message) {
-      // Return pong for a ping
       if (message === "ping") {
         ws.send("pong");
       }
-    }, // a message is received
-    open(ws) {}, // a socket is opened
-    close(ws, code, message) {}, // a socket is closed
-    drain(ws) {}, // the socket is ready to receive more data
+    },
   },
 });
 

@@ -3,6 +3,7 @@ type PingServer = {
   url: string;
 };
 
+// TODO: Add rivet urls to the rivet servers on these regions.
 const PING_SERVERS: PingServer[] = [
   {
     region: "lnd-atl",
@@ -26,13 +27,23 @@ const PING_SERVERS: PingServer[] = [
   },
 ];
 
-const average = (nums: number[]) =>
-  nums.reduce((a, b) => a + b, 0) / nums.length;
+function average(nums: number[]) {
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
 
-const pingServer = async (
+/**
+ * Pings the server to measure the latency.
+ *
+ * @param {PingServer} server - The server to ping.
+ * @param {Object} [options] - Optional parameters.
+ * @param {number} [options.times=3] - Number of times to ping the server.
+ * @param {number} [options.timeout=1000] - Timeout duration in milliseconds.
+ * @returns {Promise<number>} - A promise that resolves with the average latency in milliseconds.
+ */
+async function pingServer(
   server: PingServer,
   { times = 3, timeout = 1000 } = {}
-) => {
+) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(server.url);
 
@@ -75,15 +86,20 @@ const pingServer = async (
       }
     };
   });
-};
+}
+
 
 /**
- * Pings all servers in parallel and returns the results.
+ * Ping all servers and return the ones that respond with latency.
  *
- * Note: doing this in parallel may affect results since the
- * network requests may be competing for bandwidth.
+ * Note: Pinging is done in parallel. This may lead to the requests
+ * contending for the same resources on the system, affecting the
+ * perceived latency of each request. Keep this in mind when interpreting
+ * the results.
+ *
+ * @returns {Promise<Array<{name: string, url: string, latency: number}>>} - An array of server objects with name, url, and latency.
  */
-const pingAllServers = async () => {
+async function pingAllServers() {
   const results = await Promise.all(
     PING_SERVERS.map(async (server) => ({
       ...server,
@@ -95,6 +111,6 @@ const pingAllServers = async () => {
   );
 
   return results.filter((r) => r.latency !== null);
-};
+}
 
 console.log(await pingAllServers());
